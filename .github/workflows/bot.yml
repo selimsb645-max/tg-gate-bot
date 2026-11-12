@@ -40,7 +40,10 @@ jobs:
           CHANNEL_LINK: ${{ secrets.CHANNEL_LINK }}
           STORAGE: ${{ secrets.STORAGE }}
           DB_PATH: data/gate.db
-        run: timeout 20400 python3 gate_bot.py || true
+        run: |
+          timeout 20400 python3 gate_bot.py
+          code=$?
+          if [ "$code" -ne 0 ] && [ "$code" -ne 124 ]; then exit "$code"; fi
 
       - name: save db
         if: always()
