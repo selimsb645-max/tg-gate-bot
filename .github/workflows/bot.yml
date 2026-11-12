@@ -1,0 +1,50 @@
+name: Gate Bot (24/7)
+
+on:
+  workflow_dispatch:
+  schedule:
+    # প্রতি ৫ ঘণ্টায় নিজে নিজে উঠবে (একটা রানের সীমা ৬ ঘণ্টা)
+    - cron: "0 */5 * * *"
+
+concurrency:
+  group: gate-bot
+  cancel-in-progress: true
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: deps
+        run: pip install -r requirements.txt
+
+      - name: restore db
+        uses: actions/cache/restore@v4
+        with:
+          path: data
+          key: gate-db-${{ github.run_id }}
+          restore-keys: |
+            gate-db-
+
+      - name: run bot
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          ADMIN_IDS: ${{ secrets.ADMIN_IDS }}
+          CHANNEL: ${{ secrets.CHANNEL }}
+          CHANNEL_LINK: ${{ secrets.CHANNEL_LINK }}
+          STORAGE: ${{ secrets.STORAGE }}
+          DB_PATH: data/gate.db
+        run: timeout 20400 python3 gate_bot.py || true
+
+      - name: save db
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: data
+          key: gate-db-${{ github.run_id }}
