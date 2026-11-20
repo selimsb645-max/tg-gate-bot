@@ -41,7 +41,13 @@ jobs:
           STORAGE: ${{ secrets.STORAGE }}
           DB_PATH: data/gate.db
         run: |
+          # OWNER 2026-11-20: 'সব চালু থাকবে'. A 5h40m run is SUPPOSED to end here -
+          # the 5-hourly cron starts the next one. `timeout` exits 124 when it ends the
+          # bot normally, and that turned every healthy cycle into a red 'failure' run.
           timeout 20400 python3 gate_bot.py
+          rc=$?
+          if [ "$rc" -eq 124 ]; then echo 'bot reached its 5h40m limit - normal handover to the next cron'; exit 0; fi
+          exit "$rc"
           code=$?
           if [ "$code" -ne 0 ] && [ "$code" -ne 124 ]; then exit "$code"; fi
 
